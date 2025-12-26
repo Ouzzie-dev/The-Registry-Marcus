@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Registry - Memory Extraction Division</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      background: #0b0c10;
+      color: #c5c6c7;
+      font-family: 'Courier New', monospace;
+      position: relative;
+    }
+
+    /* CRT Scanline Effect */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 1000;
+      animation: scanlines 8s linear infinite;
+    }
+
+    /* Noise Overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      animation: noise 0.2s infinite;
+    }
+
+    @keyframes scanlines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
+
+    @keyframes noise {
+      0%, 100% { opacity: 0.03; }
+      50% { opacity: 0.05; }
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.95; }
+    }
+
+    @keyframes glow {
+      0%, 100% { text-shadow: 0 0 10px rgba(102, 252, 241, 0.5), 0 0 20px rgba(102, 252, 241, 0.3); }
+      50% { text-shadow: 0 0 15px rgba(102, 252, 241, 0.7), 0 0 30px rgba(102, 252, 241, 0.4); }
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid #1f2833;
+      padding-bottom: 1.5rem;
+      margin-bottom: 3rem;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .site-title {
+      font-size: 2.5rem;
+      color: #66fcf1;
+      letter-spacing: 0.3rem;
+      margin-bottom: 0.5rem;
+      animation: glow 3s ease-in-out infinite;
+    }
+
+    .tagline {
+      font-size: 0.9rem;
+      color: #45a29e;
+      letter-spacing: 0.2rem;
+      text-transform: uppercase;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem;
+      margin-bottom: 4rem;
+      border: 1px solid #1f2833;
+      background: rgba(31, 40, 51, 0.3);
+      animation: fadeIn 1.5s ease-out 0.3s both;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '█';
+      position: absolute;
+      right: 2rem;
+      top: 2rem;
+      color: #66fcf1;
+      animation: blink 1s step-end infinite;
+    }
+
+    .hero-title {
+      font-size: 3rem;
+      color: #66fcf1;
+      margin-bottom: 1rem;
+      letter-spacing: 0.2rem;
+      animation: flicker 4s ease-in-out infinite;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: #c5c6c7;
+      letter-spacing: 0.15rem;
+    }
+
+    /* Mission Section */
+    .mission {
+      margin-bottom: 4rem;
+      animation: fadeIn 2s ease-out 0.6s both;
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      color: #45a29e;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.15rem;
+      border-left: 4px solid #66fcf1;
+      padding-left: 1rem;
+    }
+
+    .mission-text {
+      line-height: 1.8;
+      color: #c5c6c7;
+      font-size: 1rem;
+      padding-left: 1rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+      animation: fadeIn 2.5s ease-out 0.9s both;
+    }
+
+    .stat-card {
+      border: 1px solid #1f2833;
+      padding: 2rem;
+      background: rgba(31, 40, 51, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: #45a29e;
+      background: rgba(31, 40, 51, 0.4);
+      transform: translateY(-5px);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      color: #66fcf1;
+      margin-bottom: 0.5rem;
+      animation: glow 4s ease-in-out infinite;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #c5c6c7;
+      text-transform: uppercase;
+      letter-spacing: 0.1rem;
+    }
+
+    /* Subjects Section */
+    .subjects {
+      margin-bottom: 4rem;
+      animation: fadeIn 2.5s ease-out 1.2s both;
+    }
+
+    .subject-card {
+      border: 1px solid #1f2833;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      background: rgba(31, 40, 51, 0.2);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .subject-card:hover {
+      border-color: #45a29e;
+      background: rgba(31, 40, 51, 0.4);
+    }
+
+    .subject-card::before {
+      content: '▸';
+      position: absolute;
+      left: 0.5rem;
+      top: 2rem;
+      color: #66fcf1;
+      font-size: 1.5rem;
+      animation: blink 1.5s step-end infinite;
+    }
+
+    .subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .subject-id {
+      font-size: 0.8rem;
+      color: #45a29e;
+      letter-spacing: 0.15rem;
+    }
+
+    .status-badge {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.1rem;
+      border: 1px solid;
+    }
+
+    .status-critical {
+      color: #ff4444;
+      border-color: #ff4444;
+      animation: blink 2s step-end infinite;
+    }
+
+    .status-stable {
+      color: #66fcf1;
+      border-color: #66fcf1;
+    }
+
+    .status-unstable {
+      color: #ffaa00;
+      border-color: #ffaa00;
+    }
+
+    .subject-name {
+      font-size: 1.5rem;
+      color: #66fcf1;
+      margin-bottom: 1rem;
+      letter-spacing: 0.1rem;
+    }
+
+    .subject-details {
+      margin-bottom: 1.5rem;
+      padding-left: 1rem;
+      border-left: 2px solid #1f2833;
+    }
+
+    .detail-line {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .detail-line .label {
+      color: #45a29e;
+      margin-right: 0.5rem;
+    }
+
+    .subject-description {
+      line-height: 1.7;
+      color: #c5c6c7;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+
+
+    /* Footer */
+    footer {
+      border-top: 2px solid #1f2833;
+      padding-top: 2rem;
+      text-align: center;
+      animation: fadeIn 3s ease-out 1.5s both;
+    }
+
+    .classification {
+      color: #ff4444;
+      font-size: 0.8rem;
+      letter-spacing: 0.2rem;
+      animation: blink 2s step-end infinite;
+    }
+
+    .footer-text {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: #45a29e;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .site-title {
+        font-size: 1.8rem;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <header>
+    <h1 class="site-title" id="site-title">THE REGISTRY</h1>
+    <p class="tagline" id="tagline">MEMORY EXTRACTION DIVISION</p>
+   </header>
+   <section class="hero">
+    <h2 class="hero-title" id="hero-title">TRAPPED IN MEMORY</h2>
+    <p class="hero-subtitle" id="hero-subtitle">We bring them back</p>
+   </section>
+   <section class="mission">
+    <h3 class="section-title" id="mission-title">OUR MISSION</h3>
+    <p class="mission-text" id="mission-text">Since 1987, The Registry has been dedicated to the extraction and recovery of individuals trapped within their own memories. Using classified neural mapping technology, we navigate the labyrinth of human consciousness to retrieve those lost in time.</p>
+   </section>
+   <div class="stats-grid">
+    <div class="stat-card">
+     <div class="stat-number">
+      2,847
+     </div>
+     <div class="stat-label">
+      Successful Extractions
+     </div>
+    </div>
+    <div class="stat-card">
+     <div class="stat-number">
+      156
+     </div>
+     <div class="stat-label">
+      Active Cases
+     </div>
+    </div>
+    <div class="stat-card">
+     <div class="stat-number">
+      37
+     </div>
+     <div class="stat-label">
+      Years of Operation
+     </div>
+    </div>
+   </div>
+   <section class="subjects">
+    <h3 class="section-title">ACTIVE SUBJECTS</h3>
+    <div class="subject-card">
+     <div class="subject-header">
+      <div class="subject-id">
+       SUBJECT #2791-C
+      </div>
+      <div class="status-badge status-critical">
+       CRITICAL
+      </div>
+     </div>
+     <h4 class="subject-name" id="subject2-name">MARCUS CHEN</h4>
+     <div class="subject-details">
+      <p class="detail-line"><span class="label">AGE:</span> <span id="subject2-age">42</span></p>
+      <p class="detail-line"><span class="label">TRAPPED:</span> <span id="subject2-date">November 3, 20--</span></p>
+      <p class="detail-line"><span class="label">LOCATION:</span> <span id="subject2-location">Unknown - Memory Fragmented</span></p>
+     </div>
+     <p class="subject-description" id="subject2-description">Former neuroscientist trapped in the memory of completing his doctoral thesis. Subject appears aware of his condition but unable to break free. Memory loop spans 72 hours. Cooperative with extraction team. Prognosis: favorable.</p>
+    </div>
+    <div class="subject-card">
+     <div class="subject-header">
+      <div class="subject-id">
+       SUBJECT #2803-F
+      </div>
+      <div class="status-badge status-unstable">
+       UNSTABLE
+      </div>
+     </div>
+     <h4 class="subject-name" id="subject3-name">SARAH WINTERS</h4>
+     <div class="subject-details">
+      <p class="detail-line"><span class="label">AGE:</span> <span id="subject3-age">28</span></p>
+      <p class="detail-line"><span class="label">TRAPPED:</span> <span id="subject3-date">July 22, 20--</span></p>
+      <p class="detail-line"><span class="label">LOCATION:</span> <span id="subject3-location">Unknown - Memory Fragmented</span></p>
+     </div>
+     <p class="subject-description" id="subject3-description">Subject trapped in a composite memory constructed from multiple time periods. Memory structure is unstable and shifting. Subject exhibits signs of temporal disorientation. Extraction complicated by memory degradation and cross-contamination between different periods.</p>
+    </div>
+   </section>
+   <footer>
+    <p class="classification" id="classification">CLASSIFIED - LEVEL 4 CLEARANCE REQUIRED</p>
+    <p class="footer-text">The Registry © 1987-20-- | Memory Extraction Division</p>
+   </footer>
+  </div>
+  <script>
+    const defaultConfig = {
+      background_color: '#0b0c10',
+      accent_color: '#66fcf1',
+      secondary_color: '#45a29e',
+      text_color: '#c5c6c7',
+      alert_color: '#ff4444',
+      font_family: 'Courier New',
+      font_size: 16,
+      site_title: 'THE REGISTRY',
+      tagline: 'MEMORY EXTRACTION DIVISION',
+      hero_title: 'TRAPPED IN MEMORY',
+      hero_subtitle: 'We bring them back',
+      mission_title: 'OUR MISSION',
+      mission_text: 'Since 1987, The Registry has been dedicated to the extraction and recovery of individuals trapped within their own memories. Using classified neural mapping technology, we navigate the labyrinth of human consciousness to retrieve those lost in time.',
+      subject1_name: 'EMMA THOMPSON',
+      subject1_age: '34',
+      subject1_date: 'March 15, 20--',
+      subject1_location: 'Childhood Home - 1994',
+      subject1_description: 'Subject became trapped in a recurring memory of her eighth birthday. Neural patterns indicate she\'s reliving the same 4-hour period on loop. Extraction attempts have been unsuccessful due to emotional anchoring to deceased family members present in the memory.',
+      subject2_name: 'MARCUS CHEN',
+      subject2_age: '42',
+      subject2_date: 'November 3, 20--',
+      subject2_location: 'Unknown - Memory Fragmented',
+      subject2_description: 'Former neuroscientist trapped in the memory of completing his doctoral thesis. Subject appears aware of his condition but unable to break free. Memory loop spans 72 hours. Cooperative with extraction team. Prognosis: favorable.',
+      subject3_name: 'SARAH WINTERS',
+      subject3_age: '28',
+      subject3_date: 'July 22, 20--',
+      subject3_location: 'Unknown - Memory Fragmented',
+      subject3_description: 'Subject trapped in a composite memory constructed from multiple time periods. Memory structure is unstable and shifting. Subject exhibits signs of temporal disorientation. Extraction complicated by memory degradation and cross-contamination between different periods.',
+      classification: 'CLASSIFIED - LEVEL 4 CLEARANCE REQUIRED'
+    };
+
+    async function onConfigChange(config) {
+      const baseFont = config.font_family || defaultConfig.font_family;
+      const baseFontStack = `${baseFont}, monospace`;
+      const baseSize = config.font_size || defaultConfig.font_size;
+
+      document.body.style.background = config.background_color || defaultConfig.background_color;
+      document.body.style.color = config.text_color || defaultConfig.text_color;
+      document.body.style.fontFamily = baseFontStack;
+
+      document.getElementById('site-title').textContent = config.site_title || defaultConfig.site_title;
+      document.getElementById('site-title').style.color = config.accent_color || defaultConfig.accent_color;
+      document.getElementById('site-title').style.fontSize = `${baseSize * 2.5}px`;
+      document.getElementById('site-title').style.fontFamily = baseFontStack;
+
+      document.getElementById('tagline').textContent = config.tagline || defaultConfig.tagline;
+      document.getElementById('tagline').style.color = config.secondary_color || defaultConfig.secondary_color;
+      document.getElementById('tagline').style.fontSize = `${baseSize * 0.9}px`;
+      document.getElementById('tagline').style.fontFamily = baseFontStack;
+
+      document.getElementById('hero-title').textContent = config.hero_title || defaultConfig.hero_title;
+      document.getElementById('hero-title').style.color = config.accent_color || defaultConfig.accent_color;
+      document.getElementById('hero-title').style.fontSize = `${baseSize * 3}px`;
+      document.getElementById('hero-title').style.fontFamily = baseFontStack;
+
+      document.getElementById('hero-subtitle').textContent = config.hero_subtitle || defaultConfig.hero_subtitle;
+      document.getElementById('hero-subtitle').style.color = config.text_color || defaultConfig.text_color;
+      document.getElementById('hero-subtitle').style.fontSize = `${baseSize * 1.2}px`;
+      document.getElementById('hero-subtitle').style.fontFamily = baseFontStack;
+
+      document.getElementById('mission-title').textContent = config.mission_title || defaultConfig.mission_title;
+      document.getElementById('mission-title').style.color = config.secondary_color || defaultConfig.secondary_color;
+      document.getElementById('mission-title').style.fontSize = `${baseSize * 1.8}px`;
+      document.getElementById('mission-title').style.fontFamily = baseFontStack;
+
+      document.getElementById('mission-text').textContent = config.mission_text || defaultConfig.mission_text;
+      document.getElementById('mission-text').style.color = config.text_color || defaultConfig.text_color;
+      document.getElementById('mission-text').style.fontSize = `${baseSize}px`;
+      document.getElementById('mission-text').style.fontFamily = baseFontStack;
+
+      // Subject 1
+      document.getElementById('subject1-name').textContent = config.subject1_name || defaultConfig.subject1_name;
+      document.getElementById('subject1-age').textContent = config.subject1_age || defaultConfig.subject1_age;
+      document.getElementById('subject1-date').textContent = config.subject1_date || defaultConfig.subject1_date;
+      document.getElementById('subject1-location').textContent = config.subject1_location || defaultConfig.subject1_location;
+      document.getElementById('subject1-description').textContent = config.subject1_description || defaultConfig.subject1_description;
+
+      // Subject 2
+      document.getElementById('subject2-name').textContent = config.subject2_name || defaultConfig.subject2_name;
+      document.getElementById('subject2-age').textContent = config.subject2_age || defaultConfig.subject2_age;
+      document.getElementById('subject2-date').textContent = config.subject2_date || defaultConfig.subject2_date;
+      document.getElementById('subject2-location').textContent = config.subject2_location || defaultConfig.subject2_location;
+      document.getElementById('subject2-description').textContent = config.subject2_description || defaultConfig.subject2_description;
+
+      // Subject 3
+      document.getElementById('subject3-name').textContent = config.subject3_name || defaultConfig.subject3_name;
+      document.getElementById('subject3-age').textContent = config.subject3_age || defaultConfig.subject3_age;
+      document.getElementById('subject3-date').textContent = config.subject3_date || defaultConfig.subject3_date;
+      document.getElementById('subject3-location').textContent = config.subject3_location || defaultConfig.subject3_location;
+      document.getElementById('subject3-description').textContent = config.subject3_description || defaultConfig.subject3_description;
+
+      document.getElementById('classification').textContent = config.classification || defaultConfig.classification;
+      document.getElementById('classification').style.color = config.alert_color || defaultConfig.alert_color;
+      document.getElementById('classification').style.fontSize = `${baseSize * 0.8}px`;
+      document.getElementById('classification').style.fontFamily = baseFontStack;
+
+      const statNumbers = document.querySelectorAll('.stat-number');
+      statNumbers.forEach(num => {
+        num.style.color = config.accent_color || defaultConfig.accent_color;
+        num.style.fontSize = `${baseSize * 2.5}px`;
+        num.style.fontFamily = baseFontStack;
+      });
+
+      const statLabels = document.querySelectorAll('.stat-label');
+      statLabels.forEach(label => {
+        label.style.color = config.text_color || defaultConfig.text_color;
+        label.style.fontSize = `${baseSize * 0.9}px`;
+        label.style.fontFamily = baseFontStack;
+      });
+
+      const subjectNames = document.querySelectorAll('.subject-name');
+      subjectNames.forEach(name => {
+        name.style.color = config.accent_color || defaultConfig.accent_color;
+        name.style.fontSize = `${baseSize * 1.5}px`;
+        name.style.fontFamily = baseFontStack;
+      });
+
+      const subjectDescriptions = document.querySelectorAll('.subject-description');
+      subjectDescriptions.forEach(desc => {
+        desc.style.color = config.text_color || defaultConfig.text_color;
+        desc.style.fontSize = `${baseSize * 0.95}px`;
+        desc.style.fontFamily = baseFontStack;
+      });
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => {
+              config.accent_color = value;
+              window.elementSdk.setConfig({ accent_color: value });
+            }
+          },
+          {
+            get: () => config.secondary_color || defaultConfig.secondary_color,
+            set: (value) => {
+              config.secondary_color = value;
+              window.elementSdk.setConfig({ secondary_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.alert_color || defaultConfig.alert_color,
+            set: (value) => {
+              config.alert_color = value;
+              window.elementSdk.setConfig({ alert_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || defaultConfig.font_family,
+          set: (value) => {
+            config.font_family = value;
+            window.elementSdk.setConfig({ font_family: value });
+          }
+        },
+        fontSizeable: {
+          get: () => config.font_size || defaultConfig.font_size,
+          set: (value) => {
+            config.font_size = value;
+            window.elementSdk.setConfig({ font_size: value });
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['site_title', config.site_title || defaultConfig.site_title],
+        ['tagline', config.tagline || defaultConfig.tagline],
+        ['hero_title', config.hero_title || defaultConfig.hero_title],
+        ['hero_subtitle', config.hero_subtitle || defaultConfig.hero_subtitle],
+        ['mission_title', config.mission_title || defaultConfig.mission_title],
+        ['mission_text', config.mission_text || defaultConfig.mission_text],
+        ['subject1_name', config.subject1_name || defaultConfig.subject1_name],
+        ['subject1_age', config.subject1_age || defaultConfig.subject1_age],
+        ['subject1_date', config.subject1_date || defaultConfig.subject1_date],
+        ['subject1_location', config.subject1_location || defaultConfig.subject1_location],
+        ['subject1_description', config.subject1_description || defaultConfig.subject1_description],
+        ['subject2_name', config.subject2_name || defaultConfig.subject2_name],
+        ['subject2_age', config.subject2_age || defaultConfig.subject2_age],
+        ['subject2_date', config.subject2_date || defaultConfig.subject2_date],
+        ['subject2_location', config.subject2_location || defaultConfig.subject2_location],
+        ['subject2_description', config.subject2_description || defaultConfig.subject2_description],
+        ['subject3_name', config.subject3_name || defaultConfig.subject3_name],
+        ['subject3_age', config.subject3_age || defaultConfig.subject3_age],
+        ['subject3_date', config.subject3_date || defaultConfig.subject3_date],
+        ['subject3_location', config.subject3_location || defaultConfig.subject3_location],
+        ['subject3_description', config.subject3_description || defaultConfig.subject3_description],
+        ['classification', config.classification || defaultConfig.classification]
+      ]);
+    }
+
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange,
+      mapToCapabilities,
+      mapToEditPanelValues
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b41ec2056d5ebb6',t:'MTc2Njc2NjIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
